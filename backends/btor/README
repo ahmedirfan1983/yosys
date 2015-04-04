@@ -14,6 +14,8 @@ http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf
 Todos:
 ------
 
+- Add support for $assume cell
+
 - Add checks for unsupported stuff
     - unsupported cell types
     - async resets
