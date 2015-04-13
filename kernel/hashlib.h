@@ -92,6 +92,21 @@ template<typename P, typename Q> struct hash_ops<std::pair<P, Q>> {
 	}
 };
 
+template<typename... T> struct hash_ops<std::tuple<T...>> {
+	static inline bool cmp(std::tuple<T...> a, std::tuple<T...> b) {
+		return a == b;
+	}
+	template<size_t I = 0>
+	static inline typename std::enable_if<I == sizeof...(T), unsigned int>::type hash(std::tuple<T...>) {
+		return mkhash_init;
+	}
+	template<size_t I = 0>
+	static inline typename std::enable_if<I != sizeof...(T), unsigned int>::type hash(std::tuple<T...> a) {
+		hash_ops<typename std::tuple_element<I, std::tuple<T...>>::type> element_ops;
+		return mkhash(hash<I+1>(a), element_ops.hash(std::get<I>(a)));
+	}
+};
+
 template<typename T> struct hash_ops<std::vector<T>> {
 	static inline bool cmp(std::vector<T> a, std::vector<T> b) {
 		return a == b;
@@ -801,6 +816,14 @@ public:
 	{
 		std::sort(entries.begin(), entries.end(), [comp](const entry_t &a, const entry_t &b){ return comp(b.udata, a.udata); });
 		do_rehash();
+	}
+
+	K pop()
+	{
+		iterator it = begin();
+		K ret = *it;
+		erase(it);
+		return ret;
 	}
 
 	void swap(pool &other)

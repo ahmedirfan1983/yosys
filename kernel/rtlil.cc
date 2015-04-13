@@ -918,11 +918,11 @@ namespace {
 				param("\\SIZE");
 				param("\\OFFSET");
 				param("\\INIT");
-				param_bits("\\RD_CLK_ENABLE", param("\\RD_PORTS"));
-				param_bits("\\RD_CLK_POLARITY", param("\\RD_PORTS"));
-				param_bits("\\RD_TRANSPARENT", param("\\RD_PORTS"));
-				param_bits("\\WR_CLK_ENABLE", param("\\WR_PORTS"));
-				param_bits("\\WR_CLK_POLARITY", param("\\WR_PORTS"));
+				param_bits("\\RD_CLK_ENABLE", std::max(1, param("\\RD_PORTS")));
+				param_bits("\\RD_CLK_POLARITY", std::max(1, param("\\RD_PORTS")));
+				param_bits("\\RD_TRANSPARENT", std::max(1, param("\\RD_PORTS")));
+				param_bits("\\WR_CLK_ENABLE", std::max(1, param("\\WR_PORTS")));
+				param_bits("\\WR_CLK_POLARITY", std::max(1, param("\\WR_PORTS")));
 				port("\\RD_CLK", param("\\RD_PORTS"));
 				port("\\RD_ADDR", param("\\RD_PORTS") * param("\\ABITS"));
 				port("\\RD_DATA", param("\\RD_PORTS") * param("\\WIDTH"));
@@ -969,6 +969,10 @@ namespace {
 			if (cell->type == "$_OAI3_") { check_gate("ABCY"); return; }
 			if (cell->type == "$_AOI4_") { check_gate("ABCDY"); return; }
 			if (cell->type == "$_OAI4_") { check_gate("ABCDY"); return; }
+
+			if (cell->type == "$_MUX4_")  { check_gate("ABCDSTY"); return; }
+			if (cell->type == "$_MUX8_")  { check_gate("ABCDEFGHSTUY"); return; }
+			if (cell->type == "$_MUX16_") { check_gate("ABCDEFGHIJKLMNOPSTUVY"); return; }
 
 			if (cell->type == "$_SR_NN_") { check_gate("SRQ"); return; }
 			if (cell->type == "$_SR_NP_") { check_gate("SRQ"); return; }

@@ -824,11 +824,6 @@ struct TechmapPass : public Pass {
 		log("    -map %%<design-name>\n");
 		log("        like -map above, but with an in-memory design instead of a file.\n");
 		log("\n");
-		log("    -share_map filename\n");
-		log("        like -map, but look for the file in the share directory (where the\n");
-		log("        yosys data files are). this is mainly used internally when techmap\n");
-		log("        is called from other commands.\n");
-		log("\n");
 		log("    -extern\n");
 		log("        load the cell implementations as separate modules into the design\n");
 		log("        instead of inlining them.\n");
@@ -956,14 +951,7 @@ struct TechmapPass : public Pass {
 		size_t argidx;
 		for (argidx = 1; argidx < args.size(); argidx++) {
 			if (args[argidx] == "-map" && argidx+1 < args.size()) {
-				if (args[argidx+1].substr(0, 2) == "+/")
-					map_files.push_back(proc_share_dirname() + args[++argidx].substr(2));
-				else
-					map_files.push_back(args[++argidx]);
-				continue;
-			}
-			if (args[argidx] == "-share_map" && argidx+1 < args.size()) {
-				map_files.push_back(proc_share_dirname() + args[++argidx]);
+				map_files.push_back(args[++argidx]);
 				continue;
 			}
 			if (args[argidx] == "-max_iter" && argidx+1 < args.size()) {
@@ -1014,19 +1002,12 @@ struct TechmapPass : public Pass {
 							map->add(mod->clone());
 				} else {
 					std::ifstream f;
+					rewrite_filename(fn);
 					f.open(fn.c_str());
 					if (f.fail())
 						log_cmd_error("Can't open map file `%s'\n", fn.c_str());
 					Frontend::frontend_call(map, &f, fn, (fn.size() > 3 && fn.substr(fn.size()-3) == ".il") ? "ilang" : verilog_frontend);
 				}
-
-		dict<RTLIL::IdString, RTLIL::Module*> modules_new;
-		for (auto &it : map->modules_) {
-			if (it.first.substr(0, 2) == "\\$")
-				it.second->name = it.first.substr(1);
-			modules_new[it.second->name] = it.second;
-		}
-		map->modules_.swap(modules_new);
 
 		std::map<RTLIL::IdString, std::set<RTLIL::IdString, RTLIL::sort_by_id_str>> celltypeMap;
 		for (auto &it : map->modules_) {
@@ -1035,8 +1016,12 @@ struct TechmapPass : public Pass {
 				for (char *q = strtok(p, " \t\r\n"); q; q = strtok(NULL, " \t\r\n"))
 					celltypeMap[RTLIL::escape_id(q)].insert(it.first);
 				free(p);
-			} else
-				celltypeMap[it.first].insert(it.first);
+			} else {
+				string module_name = it.first.str();
+				if (module_name.substr(0, 2) == "\\$")
+					module_name = module_name.substr(1);
+				celltypeMap[module_name].insert(it.first);
+			}
 		}
 
 		for (auto module : design->modules())
