@@ -88,7 +88,7 @@ struct SynthIce40Pass : public Pass {
 		log("        opt -undriven -fine\n");
 		log("        techmap -map +/techmap.v [-map +/ice40/arith_map.v]\n");
 		log("        abc -dff     (only if -retime)\n");
-		log("        opt -fast\n");
+		log("        ice40_opt\n");
 		log("\n");
 		log("    map_ffs:\n");
 		log("        dff2dffe -direct-match $_DFF_*\n");
@@ -96,7 +96,7 @@ struct SynthIce40Pass : public Pass {
 		log("        opt_const -mux_undef\n");
 		log("        simplemap\n");
 		log("        ice40_ffssr\n");
-		log("        clean\n");
+		log("        ice40_opt -full\n");
 		log("\n");
 		log("    map_luts:\n");
 		log("        abc -lut 4\n");
@@ -198,7 +198,7 @@ struct SynthIce40Pass : public Pass {
 				Pass::call(design, "techmap -map +/techmap.v -map +/ice40/arith_map.v");
 			if (retime)
 				Pass::call(design, "abc -dff");
-			Pass::call(design, "opt -fast");
+			Pass::call(design, "ice40_opt");
 		}
 
 		if (check_label(active, run_from, run_to, "map_ffs"))
@@ -208,7 +208,7 @@ struct SynthIce40Pass : public Pass {
 			Pass::call(design, "opt_const -mux_undef");
 			Pass::call(design, "simplemap");
 			Pass::call(design, "ice40_ffssr");
-			Pass::call(design, "clean");
+			Pass::call(design, "ice40_opt -full");
 		}
 
 		if (check_label(active, run_from, run_to, "map_luts"))
