@@ -209,7 +209,7 @@ hierarchy -top $3; hierarchy -libdir $DIR;
 hierarchy -check; 
 proc; opt; 
 opt_const -mux_undef; opt;
-rename -hide;;;
+%rename -hide;;;
 splice; opt;
 memory_dff -wr_only; memory_collect;;
 flatten;;
@@ -235,7 +235,7 @@ line:
 \item Checking the design hierarchy.
 \item Converting processes to multiplexers (muxs) and flip-flops.
 \item Removing undef signals from muxs.
-\item Hiding all signal names that are not used as module ports.
+%\item Hiding all signal names that are not used as module ports.
 \item Explicit type conversion, by introducing slice and concat cells
   in the circuit.
 \item Converting write memories to synchronous memories, and
@@ -264,7 +264,7 @@ hierarchy -top $3; hierarchy -libdir $DIR;
 hierarchy -check; 
 proc; opt; 
 opt_const -mux_undef; opt;
-rename -hide;;;
+%rename -hide;;;
 splice; opt;
 memory;;
 flatten;;
