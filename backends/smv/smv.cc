@@ -1029,7 +1029,7 @@ struct SmvDumper
 		for (auto &wire_it : module->wires_) 
 		{
 		  RTLIL::Wire *w = wire_it.second;
-		  if(basic_wires[w->name] && !w->port_input && !w->port_output) {
+		  if(basic_wires[w->name] && !w->port_input ) {
 		    dump_basic_wire(w);
 		  }
 		}
@@ -1045,15 +1045,15 @@ struct SmvDumper
 		log("writing INIT\n");
 		int init_start_line_num = line_num + 1;
 		for (auto wire : module->wires())
-		  if (wire->attributes.count("\\init")) {
+		  if (basic_wires[wire->name]  && !wire->port_input && wire->attributes.count("\\init")) {
 		    Const val = wire->attributes.at("\\init");
 		    val.bits.resize(wire->width);
 		    ++line_num;
 		    if (wire->width > 1) {
-		      str = stringf("__expr%d := %s = 0ub%d_%s;", line_num, expr_ref[wire->name].first.c_str(), wire->width, val.as_string().c_str());
+		      str = stringf("__expr%d := %s = 0ub%d_%s; -- %s", line_num, expr_ref[wire->name].first.c_str(), wire->width, val.as_string().c_str(), cstr(wire->name));
 		    } else {
 		      bool tval = val.as_bool();
-		      str = stringf("__expr%d := %s %s;", line_num, tval ? "" : "!", expr_ref[wire->name].first.c_str() );
+		      str = stringf("__expr%d := %s %s; -- %s", line_num, tval ? "" : "!", expr_ref[wire->name].first.c_str(), cstr(wire->name) );
 		    }
 		    f << stringf("%s\n", str.c_str());
 		  }
@@ -1082,6 +1082,7 @@ struct SmvDumper
 		log("writing TRANS\n");
 		//registers next
 		//memory next
+		log("writing TRANS - registers\n");
 		std::vector<std::string> trans_expr_list;
 		for(auto cell_it = module->cells_.begin(); cell_it != module->cells_.end(); ++cell_it) {
 		  RTLIL::Cell *cell = cell_it->second;
@@ -1092,7 +1093,8 @@ struct SmvDumper
 		      trans_expr_list.push_back(str);
 		  }
 		}
-		
+
+		log("writing TRANS - memories\n");
 		for(auto mem_it = module->memories.begin(); mem_it != module->memories.end(); ++mem_it) {
 		  str = dump_memory_next(mem_it->second);
 		  if (!str.empty())
@@ -1103,7 +1105,8 @@ struct SmvDumper
 		  str = stringf("__expr%d := %s & %s;", ++line_num, trans_expr_list[i].c_str(), trans_expr_list[i+1].c_str());
 		  f << stringf("%s\n", str.c_str());
 		}
-		std::string trans_expr = stringf("__expr%d", line_num);
+
+		std::string trans_expr = trans_expr_list.size() == 0 ? stringf("TRUE") : stringf("__expr%d", line_num);
 
 		
 		log("writing INVARSPEC\n");
