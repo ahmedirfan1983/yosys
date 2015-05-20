@@ -22,15 +22,17 @@ hierarchy -top $3;
 hierarchy -libdir $DIR; 
 hierarchy -check; 
 proc; 
-opt [-mux_undef] [-undriven] [-fine] [-full] [-keepdc]; 
+opt;
+# [-mux_undef] [-undriven] [-fine] [-full] [-keepdc]; 
 #rename -hide;;;
 #techmap -map +/pmux2mux.v;;
-splice -wires;; 
+splice;; 
 memory_dff -wr_only;
 memory_collect;;
 flatten;;
 memory_unpack; 
 splitnets -driver;
 setundef -zero -undriven;;
+#wreduce;;
 write_smv $2;"
 
