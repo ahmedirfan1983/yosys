@@ -220,7 +220,7 @@ struct SmvDumper
 					{
 						if(wire->width > cell_output->size()) {
 							if(!output_type) {
-								str = stringf("__exp%d := word1(%s);", ++line_num, cell_expr.c_str());
+								str = stringf("__exp%d := word1(%s); -- dump wire", ++line_num, cell_expr.c_str());
 								f << stringf("%s\n", str.c_str());
 								cell_expr = stringf("__expr%d", line_num);
 							}
@@ -390,7 +390,7 @@ struct SmvDumper
 				l1 = dump_sigchunk(output_type, &s.chunks().front(), true);
 				log_assert(!l1.empty());
 				if(!output_type) {
-					str = stringf("__expr%d := word1(%s);", ++line_num, l1.c_str());
+					str = stringf("__expr%d := word1(%s); -- sigspec", ++line_num, l1.c_str());
 					f << stringf("%s\n", str.c_str());
 					l1 = stringf("__expr%d", line_num);
 				}
@@ -400,7 +400,7 @@ struct SmvDumper
 					l2 = dump_sigchunk(output_type, &s.chunks().at(i), true);
 					log_assert(!l2.empty());
 					if(!output_type) {
-						str = stringf("__expr%d := word1(%s);", ++line_num, l2.c_str());
+						str = stringf("__expr%d := word1(%s); -- sigspec", ++line_num, l2.c_str());
 						f << stringf("%s\n", str.c_str());
 						l2 = stringf("__expr%d", line_num);
 					}
@@ -426,23 +426,27 @@ struct SmvDumper
 			log(" - changing width of sigspec\n");
 			//TODO: this block may not be needed anymore, due to explicit type conversion by "splice" command
 			if(!output_type) {
-				str = stringf("__expr%d := word1(%s);", ++line_num, l.c_str());
+			        log_assert(exprected_width == 1);
+				str = stringf("__expr%d := word1(%s); --sigspec", ++line_num, l.c_str());
 				f << stringf("%s\n", str.c_str());
 				l = stringf("__expr%d", line_num);
 			} 
 			str = stringf ("__expr%d := resize(%s, %d); --sigspec", ++line_num, l.c_str(), expected_width);
 			f << stringf("%s\n", str.c_str());
 			l = stringf("__expr%d", line_num);
+			output_type = true;
 		}
 		log_assert(!l.empty());
-		if (expected_width == 1 && !bv && output_type) {
+		if (expected_width == 1 && !bv && output_type) 
+		{
 			str = stringf ("__expr%d := bool(%s);", ++line_num, l.c_str());
 			f << stringf("%s\n", str.c_str());
 			l = stringf("__expr%d", line_num);
 			output_type = false;
 		}
-		if (expected_width == 1 && bv && !output_type) {
-			str = stringf ("__expr%d := word1(%s);", ++line_num, l.c_str());
+		if (expected_width == 1 && bv && !output_type) 
+		{
+			str = stringf ("__expr%d := word1(%s); --sigspec", ++line_num, l.c_str());
 			f << stringf("%s\n", str.c_str());
 			l = stringf("__expr%d", line_num);
 			output_type = true;
@@ -470,99 +474,124 @@ struct SmvDumper
 				output_type = false;
 				expr_ref[cell->name] = std::make_pair(stringf("__expr%d", line_num), output_type);
 			}
-			else if (cell->type == "$not" || cell->type == "$neg" || cell->type == "$pos" || 
-				 cell->type ==  "$reduce_and" || cell->type == "$reduce_or" || cell->type == "$reduce_xor" ||
+			else if (cell->type == "$not" || cell->type == "$neg" || cell->type == "$pos")
+			{
+				log("writing unary cell - %s\n", cstr(cell->type));
+				bool t1;
+				int w = cell->parameters.at(RTLIL::IdString("\\A_WIDTH")).as_int();
+				int output_width = cell->parameters.at(RTLIL::IdString("\\Y_WIDTH")).as_int();
+				log_assert(w == output_width);
+				std::string l = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\A")), w, context);
+				std::string cell_expr;
+				bool resize = false;
+				log_assert(!(cell->type == "$neg" || cell->type == "$pos") || context);//should be bv context
+				++line_num;
+				str = stringf ("__expr%d := %s %s;", line_num, cell_type_translation.at(cell->type.str()).c_str(), l.c_str());
+				f << stringf("%s\n", str.c_str());
+				/*if (!context && cell->type == "$not") {
+				  ++line_num;
+				  str = stringf("__expr%d := bool(__expr%d);", line_num, line_num - 1);
+				  f << stringf("%s\n", str.c_str());
+				  }*/
+				if(output_width != w && context)
+				{
+				    ++line_num;
+				    str = stringf ("__expr%d := resize(__expr%d, %d);", line_num, line_num - 1, output_width);
+				    f << stringf("%s\n", str.c_str());
+				    cell_expr = stringf("__expr%d", line_num);
+				}
+				cell_expr = stringf("__expr%d", line_num);
+				output_type = context;
+				expr_ref[cell->name]=std::make_pair(cell_expr, output_type);
+			
+			}
+			else if (cell->type ==  "$reduce_and" || cell->type == "$reduce_or" || cell->type == "$reduce_xor" ||
 				 cell->type == "$reduce_bool" || cell->type == "$reduce_xnor" || cell->type == "$logic_not")
 			{
 				log("writing unary cell - %s\n", cstr(cell->type));
 				bool t1;
 				int w = cell->parameters.at(RTLIL::IdString("\\A_WIDTH")).as_int();
 				int output_width = cell->parameters.at(RTLIL::IdString("\\Y_WIDTH")).as_int();
-				std::string l = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\A")), w, context);
+				//log_assert(output_width == 1);
+				std::string l = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\A")), w, true);
 				std::string cell_expr;
 				bool resize = false;
-				if(cell->type == "$not" || cell->type == "$neg" || cell->type == "$pos")
+				log_assert(t1);
+				if (cell->type == "$reduce_and")
 				{
-					log_assert(!(cell->type == "$neg" || cell->type == "$pos") || context);//should be bv context
-					++line_num;
-					str = stringf ("__expr%d := %s %s;", line_num, cell_type_translation.at(cell->type.str()).c_str(), l.c_str());
+					str = stringf("__expr%d := ! 0ud%d_0;", ++line_num, w);
 					f << stringf("%s\n", str.c_str());
-					/*if (!context && cell->type == "$not") {
-					  ++line_num;
-					  str = stringf("__expr%d := bool(__expr%d);", line_num, line_num - 1);
-					  f << stringf("%s\n", str.c_str());
-					  }*/
-					cell_expr = stringf("__expr%d", line_num);
+					++line_num;
+					str = stringf("__expr%d := __expr%d = %s;", line_num, line_num - 1, l.c_str());
+					f << stringf("%s\n", str.c_str());
 				}
-				else
+				else if (cell->type == "$reduce_or" || cell->type == "$reduce_bool")
 				{
-					if (cell->type == "$reduce_and")
-					{
-						str = stringf("__expr%d := ! 0ud%d_0;", ++line_num, w);
-						f << stringf("%s\n", str.c_str());
-						++line_num;
-						str = stringf("__expr%d := __expr%d = %s;", line_num, line_num - 1, l.c_str());
-						f << stringf("%s\n", str.c_str());
-					}
-					else if (cell->type == "$reduce_or" || cell->type == "$reduce_bool")
+					str = stringf("__expr%d := 0ud%d_1 >= %s; --reduce or", ++line_num, w, l.c_str());
+					f << stringf("%s\n", str.c_str());
+				}
+				else if (cell->type == "$logic_not")
+				{
+					if (w>1)
 					{
 						str = stringf("__expr%d := 0ud%d_1 >= %s;", ++line_num, w, l.c_str());
 						f << stringf("%s\n", str.c_str());
+						++line_num;
+						str = stringf("__expr%d := ! __expr%d; -- logic not", line_num, line_num -1);
+						f << stringf("%s\n", str.c_str());
 					}
-					else if (cell->type == "$logic_not")
+					else
 					{
-						if (w>1)
+						str = stringf("__expr%d := ! %s; -- logic not", ++line_num, l.c_str());
+						f << stringf("%s\n", str.c_str());
+						if (!context)
 						{
-							str = stringf("__expr%d := 0ud%d_1 >= %s;", ++line_num, w, l.c_str());
-							f << stringf("%s\n", str.c_str());
-							++line_num;
-							str = stringf("__expr%d := ! __expr%d; -- logic not", line_num, line_num -1);
-							f << stringf("%s\n", str.c_str());
-						}
-						else
-						{
-							str = stringf("__expr%d := ! %s; -- logic not", ++line_num, l.c_str());
-							f << stringf("%s\n", str.c_str());
+						    ++line_num;
+						    str = stringf ("__expr%d := bool(__expr%d);", line_num, line_num - 1);
+						    f << stringf("%s\n", str.c_str());
 						}
 					}
-					else if (cell->type == "$reduce_xor" || cell->type == "$reduce_xnor")
+				}
+				else if (cell->type == "$reduce_xor" || cell->type == "$reduce_xnor")
+				{
+					std::string t = (cell->type == "$reduce_xor") ? cell_type_translation.at("$xor") : cell_type_translation.at("$xnor");
+					log_assert(w>1);
+					int i = w-1;
+					++line_num;
+					str = stringf("__expr%d := %s[%d:%d]; --reduce", line_num, l.c_str(), i, i);
+					f << stringf("%s\n", str.c_str());
+					for(--i; i >= 0; --i)
 					{
-						std::string t = (cell->type == "$reduce_xor") ? cell_type_translation.at("$xor") : cell_type_translation.at("$xnor");
-						log_assert(w>1);
-						int i = w-1;
 						++line_num;
 						str = stringf("__expr%d := %s[%d:%d]; --reduce", line_num, l.c_str(), i, i);
 						f << stringf("%s\n", str.c_str());
-						for(--i; i >= 0; --i)
-						{
-							++line_num;
-							str = stringf("__expr%d := %s[%d:%d]; --reduce", line_num, l.c_str(), i, i);
-							f << stringf("%s\n", str.c_str());
-							++line_num;
-							str = stringf("__expr%d := __expr%d %s __expr%d;", line_num, line_num - 1, t.c_str(), line_num - 2);
-							f << stringf("%s\n", str.c_str());			  
-						}
+						++line_num;
+						str = stringf("__expr%d := __expr%d %s __expr%d;", line_num, line_num - 1, t.c_str(), line_num - 2);
+						f << stringf("%s\n", str.c_str());			  
 					}
-					cell_expr = stringf("__expr%d", line_num);
+					if (!context)
+					{
+					        ++line_num;
+					        str = stringf ("__expr%d := bool(__expr%d);", line_num, line_num - 1);
+					        f << stringf("%s\n", str.c_str());
+					}
 				}
-				/*if(context && !t1) 
-				  {
-				  log_assert(w == 1);
-				  str = stringf ("__expr%d := word1(%s);", ++line_num, cell_expr.c_str());
-				  f << stringf("%s\n", str.c_str());
-				  }
-				  cell_expr = stringf("__expr%d", line_num);
-			      
-				  if(output_width != w && context) 
-				  {
-				  str = stringf ("__expr%d := resize(%s, %d);", ++line_num, cell_expr.c_str(), w);
-				  f << stringf("%s\n", str.c_str());
-				  cell_expr = stringf("__expr%d", line_num);		  
-				  }*/
-				if (cell->type =="$not" || cell->type == "%neg" || cell->type == "pos")
-					output_type = context;
-				else 
-					output_type = false;
+				if(context && !(cell->type == "$reduce_xor" || cell->type == "$reduce_xnor")
+				   && !(w==1 && cell->type == "$logic_not" && t1))
+				{
+				    ++line_num;
+				    str = stringf ("__expr%d := word1(__expr%d); -- reduce cell case", line_num, line_num - 1);
+				    f << stringf("%s\n", str.c_str());
+				}
+				if(output_width != 1 && context) 
+				{
+					++line_num;
+					str = stringf ("__expr%d := resize(__expr%d, %d);", line_num, line_num - 1, output_width);
+					f << stringf("%s\n", str.c_str());
+					cell_expr = stringf("__expr%d", line_num);		  
+				}
+				cell_expr = stringf("__expr%d", line_num);
+				output_type = context;
 				expr_ref[cell->name]=std::make_pair(cell_expr, output_type);
 			}
 			//binary logical cells
@@ -592,8 +621,9 @@ struct SmvDumper
 					? true : false;
 
 				std::string l1 = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\A")), l1_width, rel_op ? true : context);
-				std::string l2 = dump_sigspec(t2, &cell->getPort(RTLIL::IdString("\\B")), l2_width, rel_op ? true : context);
-	    
+				std::string l2 = dump_sigspec(t2, &cell->getPort(RTLIL::IdString("\\B")), l1_width, rel_op ? true : context);
+				log_assert(t1 == t2);
+
 				++line_num;
 				std::string op = cell_type_translation.at(cell->type.str());
 	    
@@ -635,19 +665,35 @@ struct SmvDumper
 				  }
 				  }
 				*/
-				//resize if the operator is not relational
-				if(!rel_op && context && output_width != l1_width)
-				{
-					++line_num;
-					str = stringf ("__expr%d := resize(__expr%d, %d);", line_num, line_num - 1, output_width);
-					f << stringf("%s\n", str.c_str());
-				}
+				
 				if(cell->type == "$and" || cell->type == "$or" || cell->type == "$xor" || cell->type == "$xnor")
-					output_type = context;
+				{
+				        if (context && !t1)
+					{
+				                 log_assert(l1_width == 1);
+						 ++line_num;
+						 str = stringf ("__expr%d := word1(__expr%d); -- and cell block", line_num, line_num - 1);
+						 f << stringf("%s\n", str.c_str());
+					}
+					else if (!context && t1)
+					{
+					         log_assert(l1_width == 1);
+						 ++line_num;
+						 str = stringf ("__expr%d := bool(__expr%d);", line_num, line_num - 1);
+						 f << stringf("%s\n", str.c_str());
+					}
+				        output_type = context;
+				}
 				else if(rel_op)
 					output_type = false;
 				else
 					output_type = true;
+				if(!rel_op && context && output_width != l1_width)
+				{
+				        ++line_num;
+					str = stringf ("__expr%d := resize(__expr%d, %d);", line_num, line_num - 1, output_width);
+					f << stringf("%s\n", str.c_str());
+				}
 				expr_ref[cell->name] = std::make_pair(stringf("__expr%d", line_num), output_type);
 			}
 			else if (cell->type == "$shr" || cell->type == "$shl" || cell->type == "$sshr" || cell->type == "$sshl" ||
@@ -671,25 +717,22 @@ struct SmvDumper
 					str = stringf ("__expr%d := resize(__expr%d, %d);", line_num, line_num - 1, output_width);
 					f << stringf("%s\n", str.c_str());
 				}
-				if(cell->type == "$and" || cell->type == "$or" || cell->type == "$xor" || cell->type == "$xnor")
-					output_type = context;
-				else if(cell->type == "$lt" || cell->type == "$le" || cell->type == "$eq" || cell->type == "$ne" ||
-					cell->type == "$eqx" || cell->type == "$nex" || cell->type == "$ge" || cell->type == "$gt")
-					output_type = false;
-				else 
-					output_type = true;
+				output_type = true;
 				expr_ref[cell->name] = std::make_pair(stringf("__expr%d", line_num), output_type);
 			}
 			else if (cell->type == "$logic_and" || cell->type == "$logic_or")
 			{
 				log("writing binary cell - %s\n", cstr(cell->type));
-				log_assert(!context);
+				//log_assert(!context);
 				bool t1, t2;
 				int output_width = cell->parameters.at(RTLIL::IdString("\\Y_WIDTH")).as_int();
+				//log_assert(output_width == 1);
 				std::string l1 = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\A")), output_width, context);
 				std::string l2 = dump_sigspec(t2, &cell->getPort(RTLIL::IdString("\\B")), output_width, context);
+				log_assert(t1 == t2);
 				int l1_width = cell->parameters.at(RTLIL::IdString("\\A_WIDTH")).as_int();
 				int l2_width = cell->parameters.at(RTLIL::IdString("\\B_WIDTH")).as_int();
+				log_assert(l1_width == l2_width);
 				if(l1_width >1)
 				{
 					str = stringf("__expr%d := 0ud%d_1 >= %s;", ++line_num, l1_width, l1.c_str());
@@ -725,7 +768,20 @@ struct SmvDumper
 					str = stringf ("__expr%d := %s %s %s;", ++line_num, l1.c_str(), cell_type_translation.at("$or").c_str(), l2.c_str());
 				}
 				f << stringf("%s\n", str.c_str());
-				output_type = false;
+				if(context && !t1)
+				{
+					log_assert(l1_width == 1);
+					++line_num;
+					str = stringf("__expr%d := word1(__expr%d); --logic and or ", line_num, line_num - 1); 
+					f << stringf("%s\n", str.c_str());
+				}
+				if(context && output_width != l1_width)
+				{
+					++line_num;
+					str = stringf("__expr%d := resize(__expr%d, %d);", line_num, line_num - 1);
+					f << stringf("%s\n", str.c_str());
+				}
+				output_type = context;
 				expr_ref[cell->name]=std::make_pair(stringf("__expr%d", line_num), output_type);
 			}
 			//multiplexers
@@ -742,14 +798,14 @@ struct SmvDumper
 				if(context && !t1)
 				{
 					log_assert(output_width == 1);
-					str = stringf ("__expr%d := word1(%s);", ++line_num, l1.c_str());
+					str = stringf ("__expr%d := word1(%s); -- mux", ++line_num, l1.c_str());
 					f << stringf("%s\n", str.c_str());
 					l1 = stringf("__expr%d", line_num);
 				}
 				if(context && !t2)
 				{
 					log_assert(output_width == 1);
-					str = stringf ("__expr%d := word1(%s);", ++line_num, l2.c_str());
+					str = stringf ("__expr%d := word1(%s); -- mux", ++line_num, l2.c_str());
 					f << stringf("%s\n", str.c_str());
 					l2 = stringf("__expr%d", line_num);
 				}
@@ -1001,19 +1057,19 @@ struct SmvDumper
 				if(!t1)
 				{
 					log_assert(input_a_width == 1);
-					str = stringf ("__expr%d := word1(%s);", ++line_num, input_a_line.c_str());
+					str = stringf ("__expr%d := word1(%s); --concat", ++line_num, input_a_line.c_str());
 					f << stringf("%s\n", str.c_str());
 					input_a_line = stringf("__expr%d", line_num);
 				}
 				if(!t2)
 				{
 					log_assert(input_b_width == 1);
-					str = stringf ("__expr%d := word1(%s);", ++line_num, input_b_line.c_str());
+					str = stringf ("__expr%d := word1(%s); --concat", ++line_num, input_b_line.c_str());
 					f << stringf("%s\n", str.c_str());
 					input_b_line = stringf("__expr%d", line_num);
 				}
 		
-				str = stringf("__expr%d := %s :: %s;", ++line_num, input_a_line.c_str(), input_b_line.c_str());
+				str = stringf("__expr%d := %s :: %s; --concat cell", ++line_num, input_a_line.c_str(), input_b_line.c_str());
 				f << stringf("%s\n", str.c_str());
 				output_type = true;
 				expr_ref[cell->name]=std::make_pair(stringf("__expr%d",line_num), output_type);
