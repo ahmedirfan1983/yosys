@@ -1,0 +1,22 @@
+This is SMV backend.
+
+SMV is input format for model check nuXmv
+nuxmv.fbk.eu
+
+It is developed by Ahmed Irfan <irfan@fbk.eu> - Fondazione Bruno Kessler, Trento, Italy
+
+Master git repository for the SMV backend:
+https://github.com/ahmedirfan1983/yosys
+
+
+Todos:
+------
+
+- Add support for $assume cell
+
+- Add checks for unsupported stuff
+    - unsupported cell types
+    - async resets
+    - etc..
+
+- Add support for $lut cells
