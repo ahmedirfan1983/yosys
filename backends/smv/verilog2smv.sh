@@ -26,13 +26,13 @@ opt;
 # [-mux_undef] [-undriven] [-fine] [-full] [-keepdc]; 
 #rename -hide;;;
 #techmap -map +/pmux2mux.v;;
-splice;; 
+splice;;; 
 memory_dff -wr_only;
 memory_collect;;
 flatten;;
 memory_unpack; 
+wreduce;;;
 splitnets -driver;
 setundef -zero -undriven;;
-#wreduce;;
 write_smv $2;"
 
