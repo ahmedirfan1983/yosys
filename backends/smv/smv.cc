@@ -440,7 +440,7 @@ struct SmvDumper
 		log_assert(!l.empty());
 		if (expected_width == 1 && !bv && output_type) 
 		{
-			str = stringf ("__expr%d := bool(%s);", ++line_num, l.c_str());
+			str = stringf ("__expr%d := bool(%s); --sigspec", ++line_num, l.c_str());
 			f << stringf("%s\n", str.c_str());
 			l = stringf("__expr%d", line_num);
 			output_type = false;
@@ -548,7 +548,7 @@ struct SmvDumper
 						if (!context)
 						{
 						    ++line_num;
-						    str = stringf ("__expr%d := bool(__expr%d);", line_num, line_num - 1);
+						    str = stringf ("__expr%d := bool(__expr%d); --logic not", line_num, line_num - 1);
 						    f << stringf("%s\n", str.c_str());
 						}
 					}
@@ -573,7 +573,7 @@ struct SmvDumper
 					if (!context)
 					{
 					        ++line_num;
-					        str = stringf ("__expr%d := bool(__expr%d);", line_num, line_num - 1);
+					        str = stringf ("__expr%d := bool(__expr%d); -- reduce_xor", line_num, line_num - 1);
 					        f << stringf("%s\n", str.c_str());
 					}
 				}
@@ -675,15 +675,21 @@ struct SmvDumper
 						 ++line_num;
 						 str = stringf ("__expr%d := word1(__expr%d); -- and cell block", line_num, line_num - 1);
 						 f << stringf("%s\n", str.c_str());
+						 output_type = context;
 					}
-					else if (!context && t1)
+					/*else if (!context && t1)
 					{
 					         log_assert(l1_width == 1);
 						 ++line_num;
-						 str = stringf ("__expr%d := bool(__expr%d);", line_num, line_num - 1);
+						 str = stringf ("__expr%d := bool(__expr%d); -- binary or cell block %d", line_num, line_num - 1, l1_width);
 						 f << stringf("%s\n", str.c_str());
+					 }
+					*/
+					else
+					{
+					          output_type = t1;
 					}
-				        output_type = context;
+				        
 				}
 				else if(rel_op)
 					output_type = false;
@@ -814,14 +820,14 @@ struct SmvDumper
 				if(!context && t1)
 				{
 					log_assert(output_width == 1);
-					str = stringf ("__expr%d := bool(%s);", ++line_num, l1.c_str());
+					str = stringf ("__expr%d := bool(%s); -- mux", ++line_num, l1.c_str());
 					f << stringf("%s\n", str.c_str());
 					l1 = stringf("__expr%d", line_num);
 				}
 				if(!context && t2)
 				{
 					log_assert(output_width == 1);
-					str = stringf ("__expr%d := bool(%s);", ++line_num, l2.c_str());
+					str = stringf ("__expr%d := bool(%s); -- mux", ++line_num, l2.c_str());
 					f << stringf("%s\n", str.c_str());
 					l2 = stringf("__expr%d", line_num);
 				}
@@ -923,7 +929,7 @@ struct SmvDumper
 					}
 					if(output_width == 1 && t2)
 					{
-						str = stringf("__expr%d := bool(%s);", ++line_num, slice.c_str()); 
+						str = stringf("__expr%d := bool(%s); -- dff", ++line_num, slice.c_str()); 
 						f << stringf("%s\n", str.c_str());
 						slice = stringf("__expr%d", line_num);
 					}
