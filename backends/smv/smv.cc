@@ -427,7 +427,7 @@ struct SmvDumper
 			log(" - changing width of sigspec\n");
 			//TODO: this block may not be needed anymore, due to explicit type conversion by "splice" command
 			if(!output_type) {
-			        log_assert(exprected_width == 1);
+			        log_assert(expected_width == 1);
 				str = stringf("__expr%d := word1(%s); --sigspec", ++line_num, l.c_str());
 				f << stringf("%s\n", str.c_str());
 				l = stringf("__expr%d", line_num);
@@ -1290,9 +1290,12 @@ struct SmvDumper
 
 		
 		int init_end_line_num = line_num;
-		for (int i=init_start_line_num; i < init_end_line_num; ++i)
+		str = stringf("__expr%d := __expr%d & __expr%d;", ++line_num, init_start_line_num, init_start_line_num+1);
+		f << stringf("%s\n", str.c_str());
+		for (int i=init_start_line_num+2; i <= init_end_line_num; ++i)
 		{
-			str = stringf("__expr%d := __expr%d & __expr%d;", ++line_num, i, i+1);
+		        ++line_num;
+		        str = stringf("__expr%d := __expr%d & __expr%d;", line_num, line_num-1, i);
 			f << stringf("%s\n", str.c_str());
 		}
 
