@@ -187,14 +187,6 @@ struct SmvDumper
 	std::string dump_wire(bool& output_type, RTLIL::Wire* wire, bool bv) {
 		if(basic_wires[wire->name])
 		{
-			/*if(bv && wire->width == 1) 
-			  {
-			  str = stringf("__expr%d := word1(%s);", ++line_num, expr_ref[wire->name].c_str());
-			  f << stringf("%s\n",str.c_str());
-			  return stringf("__expr%d", line_num);
-			  }
-			  else
-			*/
 			output_type = expr_ref[wire->name].second;
 			return expr_ref[wire->name].first;
 		}
@@ -221,7 +213,7 @@ struct SmvDumper
 					{
 						if(wire->width > cell_output->size()) {
 							if(!output_type) {
-								str = stringf("__exp%d := word1(%s); -- dump wire", ++line_num, cell_expr.c_str());
+								str = stringf("__exp%d := word1(%s);", ++line_num, cell_expr.c_str());
 								f << stringf("%s\n", str.c_str());
 								cell_expr = stringf("__expr%d", line_num);
 							}
@@ -244,7 +236,7 @@ struct SmvDumper
 							{
 								prev_wire_expr = wire_expr;
 								wire_expr = stringf("__expr%d", ++line_num);
-								str = stringf("__expr%d := %s[%d:%d]; --wire", line_num, cell_expr.c_str(), start_bit-1, start_bit-cell_output->chunks().at(j).width);
+								str = stringf("__expr%d := %s[%d:%d];", line_num, cell_expr.c_str(), start_bit-1, start_bit-cell_output->chunks().at(j).width);
 								f << stringf("%s\n", str.c_str());
 								wire_width += cell_output->chunks().at(j).width;
 								if(!prev_wire_expr.empty())
@@ -263,8 +255,6 @@ struct SmvDumper
 				{
 					log(" - checking sigmap\n");						
 					log_abort();
-					//RTLIL::SigSpec s = RTLIL::SigSpec(wire);
-					//wire_expr = dump_sigspec(output_type, &s, s.size());
 				}
 				expr_ref[wire->name]=std::make_pair(wire_expr.c_str(), output_type);
 				return wire_expr;
@@ -364,7 +354,7 @@ struct SmvDumper
 				std::string wire_expr = dump_wire(output_type, chunk->wire, bv);
 				log_assert(!wire_expr.empty());
 				++line_num;
-				str = stringf("__expr%d := %s[%d:%d]; --sigchunk", line_num, wire_expr.c_str(), 
+				str = stringf("__expr%d := %s[%d:%d];", line_num, wire_expr.c_str(), 
 					      chunk->width + chunk->offset - 1, chunk->offset);
 				f << stringf("%s\n", str.c_str());
 				l = stringf("__expr%d", line_num);
@@ -391,7 +381,7 @@ struct SmvDumper
 				l1 = dump_sigchunk(output_type, &s.chunks().front(), true);
 				log_assert(!l1.empty());
 				if(!output_type) {
-					str = stringf("__expr%d := word1(%s); -- sigspec", ++line_num, l1.c_str());
+					str = stringf("__expr%d := word1(%s);", ++line_num, l1.c_str());
 					f << stringf("%s\n", str.c_str());
 					l1 = stringf("__expr%d", line_num);
 				}
@@ -401,7 +391,7 @@ struct SmvDumper
 					l2 = dump_sigchunk(output_type, &s.chunks().at(i), true);
 					log_assert(!l2.empty());
 					if(!output_type) {
-						str = stringf("__expr%d := word1(%s); -- sigspec", ++line_num, l2.c_str());
+						str = stringf("__expr%d := word1(%s);", ++line_num, l2.c_str());
 						f << stringf("%s\n", str.c_str());
 						l2 = stringf("__expr%d", line_num);
 					}
@@ -427,12 +417,12 @@ struct SmvDumper
 			log(" - changing width of sigspec\n");
 			//TODO: this block may not be needed anymore, due to explicit type conversion by "splice" command
 			if(!output_type) {
-			        log_assert(expected_width == 1);
-				str = stringf("__expr%d := word1(%s); --sigspec", ++line_num, l.c_str());
+			        log_assert(s.size() == 1);
+				str = stringf("__expr%d := word1(%s);", ++line_num, l.c_str());
 				f << stringf("%s\n", str.c_str());
 				l = stringf("__expr%d", line_num);
 			} 
-			str = stringf ("__expr%d := resize(%s, %d); --sigspec", ++line_num, l.c_str(), expected_width);
+			str = stringf ("__expr%d := resize(%s, %d);", ++line_num, l.c_str(), expected_width);
 			f << stringf("%s\n", str.c_str());
 			l = stringf("__expr%d", line_num);
 			output_type = true;
@@ -440,14 +430,14 @@ struct SmvDumper
 		log_assert(!l.empty());
 		if (expected_width == 1 && !bv && output_type) 
 		{
-			str = stringf ("__expr%d := bool(%s); --sigspec", ++line_num, l.c_str());
+			str = stringf ("__expr%d := bool(%s);", ++line_num, l.c_str());
 			f << stringf("%s\n", str.c_str());
 			l = stringf("__expr%d", line_num);
 			output_type = false;
 		}
 		if (expected_width == 1 && bv && !output_type) 
 		{
-			str = stringf ("__expr%d := word1(%s); --sigspec", ++line_num, l.c_str());
+			str = stringf ("__expr%d := word1(%s);", ++line_num, l.c_str());
 			f << stringf("%s\n", str.c_str());
 			l = stringf("__expr%d", line_num);
 			output_type = true;
@@ -481,7 +471,6 @@ struct SmvDumper
 				bool t1;
 				int w = cell->parameters.at(RTLIL::IdString("\\A_WIDTH")).as_int();
 				int output_width = cell->parameters.at(RTLIL::IdString("\\Y_WIDTH")).as_int();
-				log_assert(w == output_width);
 				std::string l = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\A")), w, context);
 				std::string cell_expr;
 				bool resize = false;
@@ -489,11 +478,7 @@ struct SmvDumper
 				++line_num;
 				str = stringf ("__expr%d := %s %s;", line_num, cell_type_translation.at(cell->type.str()).c_str(), l.c_str());
 				f << stringf("%s\n", str.c_str());
-				/*if (!context && cell->type == "$not") {
-				  ++line_num;
-				  str = stringf("__expr%d := bool(__expr%d);", line_num, line_num - 1);
-				  f << stringf("%s\n", str.c_str());
-				  }*/
+
 				if(output_width != w && context)
 				{
 				    ++line_num;
@@ -513,7 +498,6 @@ struct SmvDumper
 				bool t1;
 				int w = cell->parameters.at(RTLIL::IdString("\\A_WIDTH")).as_int();
 				int output_width = cell->parameters.at(RTLIL::IdString("\\Y_WIDTH")).as_int();
-				//log_assert(output_width == 1);
 				std::string l = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\A")), w, true);
 				std::string cell_expr;
 				bool resize = false;
@@ -528,7 +512,7 @@ struct SmvDumper
 				}
 				else if (cell->type == "$reduce_or" || cell->type == "$reduce_bool")
 				{
-					str = stringf("__expr%d := 0ud%d_1 >= %s; --reduce or", ++line_num, w, l.c_str());
+					str = stringf("__expr%d := 0ud%d_1 >= %s;", ++line_num, w, l.c_str());
 					f << stringf("%s\n", str.c_str());
 				}
 				else if (cell->type == "$logic_not")
@@ -538,17 +522,17 @@ struct SmvDumper
 						str = stringf("__expr%d := 0ud%d_1 >= %s;", ++line_num, w, l.c_str());
 						f << stringf("%s\n", str.c_str());
 						++line_num;
-						str = stringf("__expr%d := ! __expr%d; -- logic not", line_num, line_num -1);
+						str = stringf("__expr%d := ! __expr%d;", line_num, line_num -1);
 						f << stringf("%s\n", str.c_str());
 					}
 					else
 					{
-						str = stringf("__expr%d := ! %s; -- logic not", ++line_num, l.c_str());
+						str = stringf("__expr%d := ! %s;", ++line_num, l.c_str());
 						f << stringf("%s\n", str.c_str());
 						if (!context)
 						{
 						    ++line_num;
-						    str = stringf ("__expr%d := bool(__expr%d); --logic not", line_num, line_num - 1);
+						    str = stringf ("__expr%d := bool(__expr%d);", line_num, line_num - 1);
 						    f << stringf("%s\n", str.c_str());
 						}
 					}
@@ -559,12 +543,12 @@ struct SmvDumper
 					log_assert(w>1);
 					int i = w-1;
 					++line_num;
-					str = stringf("__expr%d := %s[%d:%d]; --reduce", line_num, l.c_str(), i, i);
+					str = stringf("__expr%d := %s[%d:%d];", line_num, l.c_str(), i, i);
 					f << stringf("%s\n", str.c_str());
 					for(--i; i >= 0; --i)
 					{
 						++line_num;
-						str = stringf("__expr%d := %s[%d:%d]; --reduce", line_num, l.c_str(), i, i);
+						str = stringf("__expr%d := %s[%d:%d];", line_num, l.c_str(), i, i);
 						f << stringf("%s\n", str.c_str());
 						++line_num;
 						str = stringf("__expr%d := __expr%d %s __expr%d;", line_num, line_num - 1, t.c_str(), line_num - 2);
@@ -573,7 +557,7 @@ struct SmvDumper
 					if (!context)
 					{
 					        ++line_num;
-					        str = stringf ("__expr%d := bool(__expr%d); -- reduce_xor", line_num, line_num - 1);
+					        str = stringf ("__expr%d := bool(__expr%d);", line_num, line_num - 1);
 					        f << stringf("%s\n", str.c_str());
 					}
 				}
@@ -581,7 +565,7 @@ struct SmvDumper
 				   && !(w==1 && cell->type == "$logic_not" && t1))
 				{
 				    ++line_num;
-				    str = stringf ("__expr%d := word1(__expr%d); -- reduce cell case", line_num, line_num - 1);
+				    str = stringf ("__expr%d := word1(__expr%d);", line_num, line_num - 1);
 				    f << stringf("%s\n", str.c_str());
 				}
 				if(output_width != 1 && context) 
@@ -628,44 +612,9 @@ struct SmvDumper
 				++line_num;
 				std::string op = cell_type_translation.at(cell->type.str());
 	    
-				str = stringf ("__expr%d := %s %s %s; --binary operators %d %d", line_num, l1.c_str(), op.c_str(), l2.c_str(),
+				str = stringf ("__expr%d := %s %s %s;", line_num, l1.c_str(), op.c_str(), l2.c_str(),
 					       l1_width, l2_width);
 				f << stringf("%s\n", str.c_str());
-
-				/*
-				  if(cell->type == "$and" || cell->type == "$or" || cell->type == "$xor" || cell->type == "$xnor") 
-				  {
-				  if(context && !t1) 
-				  {
-				  log_assert(l1_width == 1);
-				  str = stringf ("__expr%d := word1(%s);", ++line_num, l1.c_str());
-				  f << stringf("%s\n", str.c_str());
-				  l1 = stringf("__expr%d", line_num);
-				  }
-				  if(context && !t2) 
-				  {
-				  log_assert(l2_width == 1);
-				  str = stringf ("__expr%d := word1(%s);", ++line_num, l2.c_str());
-				  f << stringf("%s\n", str.c_str());
-				  l2 = stringf("__expr%d", line_num);
-				  }
-		  
-				  if(!context && t1) 
-				  {
-				  log_assert(l1_width == 1);
-				  str = stringf ("__expr%d := bool(%s);", ++line_num, l1.c_str());
-				  f << stringf("%s\n", str.c_str());
-				  l1 = stringf("__expr%d", line_num);
-				  }
-				  if(!context && t2) 
-				  {
-				  log_assert(l2_width == 1);
-				  str = stringf ("__expr%d := bool(%s);", ++line_num, l2.c_str());
-				  f << stringf("%s\n", str.c_str());
-				  l2 = stringf("__expr%d", line_num);
-				  }
-				  }
-				*/
 				
 				if(cell->type == "$and" || cell->type == "$or" || cell->type == "$xor" || cell->type == "$xnor")
 				{
@@ -673,19 +622,11 @@ struct SmvDumper
 					{
 				                 log_assert(l1_width == 1);
 						 ++line_num;
-						 str = stringf ("__expr%d := word1(__expr%d); -- and cell block", line_num, line_num - 1);
+						 str = stringf ("__expr%d := word1(__expr%d);", line_num, line_num - 1);
 						 f << stringf("%s\n", str.c_str());
 						 output_type = context;
 					}
-					/*else if (!context && t1)
-					{
-					         log_assert(l1_width == 1);
-						 ++line_num;
-						 str = stringf ("__expr%d := bool(__expr%d); -- binary or cell block %d", line_num, line_num - 1, l1_width);
-						 f << stringf("%s\n", str.c_str());
-					 }
-					*/
-					else
+                                        else
 					{
 					          output_type = t1;
 					}
@@ -730,10 +671,8 @@ struct SmvDumper
 			else if (cell->type == "$logic_and" || cell->type == "$logic_or")
 			{
 				log("writing binary cell - %s\n", cstr(cell->type));
-				//log_assert(!context);
 				bool t1, t2;
 				int output_width = cell->parameters.at(RTLIL::IdString("\\Y_WIDTH")).as_int();
-				//log_assert(output_width == 1);
 				std::string l1 = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\A")), output_width, context);
 				std::string l2 = dump_sigspec(t2, &cell->getPort(RTLIL::IdString("\\B")), output_width, context);
 				log_assert(t1 == t2);
@@ -752,23 +691,10 @@ struct SmvDumper
 					f << stringf("%s\n", str.c_str());
 					l2 = stringf("__expr%d", line_num);
 				}
-				/*if(t1) 
-				  {
-				  log_assert(output_width == 1);
-				  str = stringf("__expr%d := bool(%s);" , ++line_num, l1.c_str());
-				  f << stringf("%s\n", str.c_str());
-				  l1 = stringf("__expr%d", line_num);
-				  }
-				  if(t2) 
-				  {
-				  log_assert(output_width == 1);
-				  str = stringf("__expr%d := bool(%s);" , ++line_num, l2.c_str());
-				  f << stringf("%s\n", str.c_str());
-				  l2 = stringf("__expr%d", line_num);
-				  }*/
+				
 				if(cell->type == "$logic_and")
 				{
-					str = stringf ("__expr%d := %s %s %s; -- logic and", ++line_num, l1.c_str(), cell_type_translation.at("$and").c_str(), l2.c_str());
+					str = stringf ("__expr%d := %s %s %s;", ++line_num, l1.c_str(), cell_type_translation.at("$and").c_str(), l2.c_str());
 				}
 				else if(cell->type == "$logic_or")
 				{
@@ -779,7 +705,7 @@ struct SmvDumper
 				{
 					log_assert(l1_width == 1);
 					++line_num;
-					str = stringf("__expr%d := word1(__expr%d); --logic and or ", line_num, line_num - 1); 
+					str = stringf("__expr%d := word1(__expr%d);", line_num, line_num - 1); 
 					f << stringf("%s\n", str.c_str());
 				}
 				if(context && output_width != l1_width)
@@ -805,14 +731,14 @@ struct SmvDumper
 				if(context && !t1)
 				{
 					log_assert(output_width == 1);
-					str = stringf ("__expr%d := word1(%s); -- mux", ++line_num, l1.c_str());
+					str = stringf ("__expr%d := word1(%s);", ++line_num, l1.c_str());
 					f << stringf("%s\n", str.c_str());
 					l1 = stringf("__expr%d", line_num);
 				}
 				if(context && !t2)
 				{
 					log_assert(output_width == 1);
-					str = stringf ("__expr%d := word1(%s); -- mux", ++line_num, l2.c_str());
+					str = stringf ("__expr%d := word1(%s);", ++line_num, l2.c_str());
 					f << stringf("%s\n", str.c_str());
 					l2 = stringf("__expr%d", line_num);
 				}
@@ -820,20 +746,20 @@ struct SmvDumper
 				if(!context && t1)
 				{
 					log_assert(output_width == 1);
-					str = stringf ("__expr%d := bool(%s); -- mux", ++line_num, l1.c_str());
+					str = stringf ("__expr%d := bool(%s);", ++line_num, l1.c_str());
 					f << stringf("%s\n", str.c_str());
 					l1 = stringf("__expr%d", line_num);
 				}
 				if(!context && t2)
 				{
 					log_assert(output_width == 1);
-					str = stringf ("__expr%d := bool(%s); -- mux", ++line_num, l2.c_str());
+					str = stringf ("__expr%d := bool(%s);", ++line_num, l2.c_str());
 					f << stringf("%s\n", str.c_str());
 					l2 = stringf("__expr%d", line_num);
 				}
 		
 				++line_num;
-				str = stringf ("__expr%d := (%s ? %s : %s); -- mux cell", 
+				str = stringf ("__expr%d := (%s ? %s : %s);", 
 					       line_num, s.c_str(), l2.c_str(), l1.c_str());
 				//if s is 0 then l1, if s is 1 then l2 //according to the implementation of mux cell
 				f << stringf("%s\n", str.c_str());
@@ -854,18 +780,18 @@ struct SmvDumper
 				for (int i=0; i<select_width; ++i)
 				{
 					++line_num;
-					str = stringf ("__expr%d := %s[%d:%d]; --pmux", line_num, select.c_str(), i, i);
+					str = stringf ("__expr%d := %s[%d:%d];", line_num, select.c_str(), i, i);
 					f << stringf("%s\n", str.c_str());
 					c[i] = line_num;
 					++line_num;
 					if(!context)
 					{
 						log_assert(output_width == 1);
-						str = stringf ("__expr%d := bool(%s[%d:%d]); --pmux", line_num, cases.c_str(), i*output_width+output_width-1,
+						str = stringf ("__expr%d := bool(%s[%d:%d]);", line_num, cases.c_str(), i*output_width+output_width-1,
 							       i*output_width);
 					}
 					else 
-						str = stringf ("__expr%d := %s[%d:%d]; --pmux", line_num, cases.c_str(), i*output_width+output_width-1,
+						str = stringf ("__expr%d := %s[%d:%d];", line_num, cases.c_str(), i*output_width+output_width-1,
 							       i*output_width);
 					f << stringf("%s\n", str.c_str());
 				}
@@ -881,19 +807,7 @@ struct SmvDumper
 					f << stringf("%s\n", str.c_str());
 				}
 		
-				/*if(!context) 
-				  {
-				  if(output_width > 1) 
-				  {
-				  ++line_num;
-				  str = stringf("__expr%d := reszie(__expr%d, %d);", line_num, line_num - 1, 1);
-				  f << stringf("%s\n", str.c_str());
-				  }
-				  ++line_num;
-				  str = stringf("__expr%d := bool(__expr%d);", line_num, line_num - 1);
-				  f << stringf("%s\n", str.c_str());
-				  }*/
-				output_type = context;
+                                output_type = context;
 				expr_ref[cell->name]=std::make_pair(stringf("__expr%d", line_num), output_type);
 			}
 			//registers
@@ -923,13 +837,13 @@ struct SmvDumper
 					{
 						start_bit+=output_width;
 						slice = stringf("__expr%d", ++line_num);
-						str = stringf ("__expr%d := %s[%d:%d]; --dff", line_num, value.c_str(), start_bit-1, 
+						str = stringf ("__expr%d := %s[%d:%d];", line_num, value.c_str(), start_bit-1, 
 							       start_bit-output_width);
 						f << stringf("%s\n", str.c_str());
 					}
 					if(output_width == 1 && t2)
 					{
-						str = stringf("__expr%d := bool(%s); -- dff", ++line_num, slice.c_str()); 
+						str = stringf("__expr%d := bool(%s);", ++line_num, slice.c_str()); 
 						f << stringf("%s\n", str.c_str());
 						slice = stringf("__expr%d", line_num);
 					}
@@ -1043,7 +957,7 @@ struct SmvDumper
 				log_assert(t1);
 				int output_width = cell->parameters.at(RTLIL::IdString("\\Y_WIDTH")).as_int();
 				int offset = cell->parameters.at(RTLIL::IdString("\\OFFSET")).as_int();
-				str = stringf("__expr%d := %s[%d:%d]; --slice", ++line_num, input_line.c_str(), output_width+offset-1, offset);
+				str = stringf("__expr%d := %s[%d:%d];", ++line_num, input_line.c_str(), output_width+offset-1, offset);
 				f << stringf("%s\n", str.c_str());
 				output_type = true;
 				expr_ref[cell->name]=std::make_pair(stringf("__expr%d",line_num), output_type);
@@ -1064,19 +978,19 @@ struct SmvDumper
 				if(!t1)
 				{
 					log_assert(input_a_width == 1);
-					str = stringf ("__expr%d := word1(%s); --concat", ++line_num, input_a_line.c_str());
+					str = stringf ("__expr%d := word1(%s);", ++line_num, input_a_line.c_str());
 					f << stringf("%s\n", str.c_str());
 					input_a_line = stringf("__expr%d", line_num);
 				}
 				if(!t2)
 				{
 					log_assert(input_b_width == 1);
-					str = stringf ("__expr%d := word1(%s); --concat", ++line_num, input_b_line.c_str());
+					str = stringf ("__expr%d := word1(%s);", ++line_num, input_b_line.c_str());
 					f << stringf("%s\n", str.c_str());
 					input_b_line = stringf("__expr%d", line_num);
 				}
 		
-				str = stringf("__expr%d := %s :: %s; --concat cell", ++line_num, input_a_line.c_str(), input_b_line.c_str());
+				str = stringf("__expr%d := %s :: %s;", ++line_num, input_a_line.c_str(), input_b_line.c_str());
 				f << stringf("%s\n", str.c_str());
 				output_type = true;
 				expr_ref[cell->name]=std::make_pair(stringf("__expr%d",line_num), output_type);
@@ -1170,7 +1084,6 @@ struct SmvDumper
 		{
 			RTLIL::Wire *wire = it.second;
 			dump_basic_wire(wire);
-			//			basic_wires[wire->name] = false;
 		}
 
 		log("writing VAR\n");
@@ -1202,12 +1115,12 @@ struct SmvDumper
 				++line_num;
 				if (wire->width > 1)
 				{
-					str = stringf("__expr%d := %s = 0ub%d_%s; -- %s", line_num, expr_ref[wire->name].first.c_str(), wire->width, val.as_string().c_str(), cstr(wire->name));
+					str = stringf("__expr%d := %s = 0ub%d_%s;", line_num, expr_ref[wire->name].first.c_str(), wire->width, val.as_string().c_str(), cstr(wire->name));
 				}
 				else
 				{
 					bool tval = val.as_bool();
-					str = stringf("__expr%d := %s %s; -- %s", line_num, tval ? "" : "!", expr_ref[wire->name].first.c_str(), cstr(wire->name) );
+					str = stringf("__expr%d := %s %s;", line_num, tval ? "" : "!", expr_ref[wire->name].first.c_str(), cstr(wire->name) );
 				}
 				f << stringf("%s\n", str.c_str());
 			}
