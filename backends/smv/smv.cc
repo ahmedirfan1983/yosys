@@ -1186,15 +1186,15 @@ struct SmvDumper
 			std::string mem_str = stringf("CONSTARRAY(typeof(%s), %s)", cstr(mem_name), base_value->first.c_str());
 			for (unsigned long i=0; i < mem_init_cells_map[mem_name].size(); ++i)
 			{
-			  RTLIL::Cell *cell = mem_init_cells_map[mem_name][i];
-			  int elem_width = cell->parameters.at(RTLIL::IdString("\\WIDTH")).as_int();
-			  std::string data = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\DATA")), elem_width, true);
-			  if (data != base_value->first)
-			  {
-			    int address_width = cell->parameters.at(RTLIL::IdString("\\ABITS")).as_int();
-			    std::string address = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\ADDR")), address_width, true);
-                            mem_str = stringf("WRITE(%s, %s, %s)", mem_str.c_str(), address.c_str(), data.c_str());    
-			  }
+			  	RTLIL::Cell *cell = mem_init_cells_map[mem_name][i];
+			  	int elem_width = cell->parameters.at(RTLIL::IdString("\\WIDTH")).as_int();
+			  	std::string data = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\DATA")), elem_width, true);
+			  	if (data != base_value->first)
+			  	{
+			    		int address_width = cell->parameters.at(RTLIL::IdString("\\ABITS")).as_int();
+			    		std::string address = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\ADDR")), address_width, true);
+                            		mem_str = stringf("WRITE(%s, %s, %s)", mem_str.c_str(), address.c_str(), data.c_str());    
+			  	}
 			}
 
 			str = stringf("__expr%d := %s = %s;", ++line_num, cstr(mem_name), mem_str.c_str());
@@ -1203,8 +1203,11 @@ struct SmvDumper
 
 		
 		int init_end_line_num = line_num;
-		str = stringf("__expr%d := __expr%d & __expr%d;", ++line_num, init_start_line_num, init_start_line_num+1);
-		f << stringf("%s\n", str.c_str());
+		if (init_end_line_num > 1)
+                {
+                	str = stringf("__expr%d := __expr%d & __expr%d;", ++line_num, init_start_line_num, init_start_line_num+1);
+			f << stringf("%s\n", str.c_str());
+                }
 		for (int i=init_start_line_num+2; i <= init_end_line_num; ++i)
 		{
 		        ++line_num;
