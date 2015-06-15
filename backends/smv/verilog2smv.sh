@@ -5,7 +5,7 @@
 #
 
 if [ "$#" -ne 3 ]; then
-  echo "Usage: $0 input.v output.btor top-module-name" >&2
+  echo "Usage: $0 input.v output.smv top-module-name" >&2
   exit 1
 fi
 if ! [ -e "$1" ]; then
