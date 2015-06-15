@@ -481,10 +481,10 @@ struct SmvDumper
 
 				if(output_width != w && context)
 				{
-				    ++line_num;
-				    str = stringf ("__expr%d := resize(__expr%d, %d);", line_num, line_num - 1, output_width);
-				    f << stringf("%s\n", str.c_str());
-				    cell_expr = stringf("__expr%d", line_num);
+					++line_num;
+					str = stringf ("__expr%d := resize(__expr%d, %d);", line_num, line_num - 1, output_width);
+					f << stringf("%s\n", str.c_str());
+					cell_expr = stringf("__expr%d", line_num);
 				}
 				cell_expr = stringf("__expr%d", line_num);
 				output_type = context;
@@ -531,9 +531,9 @@ struct SmvDumper
 						f << stringf("%s\n", str.c_str());
 						if (!context)
 						{
-						    ++line_num;
-						    str = stringf ("__expr%d := bool(__expr%d);", line_num, line_num - 1);
-						    f << stringf("%s\n", str.c_str());
+							++line_num;
+							str = stringf ("__expr%d := bool(__expr%d);", line_num, line_num - 1);
+							f << stringf("%s\n", str.c_str());
 						}
 					}
 				}
@@ -556,17 +556,17 @@ struct SmvDumper
 					}
 					if (!context)
 					{
-					        ++line_num;
-					        str = stringf ("__expr%d := bool(__expr%d);", line_num, line_num - 1);
-					        f << stringf("%s\n", str.c_str());
+						++line_num;
+						str = stringf ("__expr%d := bool(__expr%d);", line_num, line_num - 1);
+						f << stringf("%s\n", str.c_str());
 					}
 				}
 				if(context && !(cell->type == "$reduce_xor" || cell->type == "$reduce_xnor")
 				   && !(w==1 && cell->type == "$logic_not" && t1))
 				{
-				    ++line_num;
-				    str = stringf ("__expr%d := word1(__expr%d);", line_num, line_num - 1);
-				    f << stringf("%s\n", str.c_str());
+					++line_num;
+					str = stringf ("__expr%d := word1(__expr%d);", line_num, line_num - 1);
+					f << stringf("%s\n", str.c_str());
 				}
 				if(output_width != 1 && context) 
 				{
@@ -628,7 +628,7 @@ struct SmvDumper
 					}
                                         else
 					{
-					          output_type = t1;
+						output_type = t1;
 					}
 				        
 				}
@@ -638,7 +638,7 @@ struct SmvDumper
 					output_type = true;
 				if(!rel_op && context && output_width != l1_width)
 				{
-				        ++line_num;
+					++line_num;
 					str = stringf ("__expr%d := resize(__expr%d, %d);", line_num, line_num - 1, output_width);
 					f << stringf("%s\n", str.c_str());
 				}
@@ -1142,24 +1142,24 @@ struct SmvDumper
 		std::map<RTLIL::IdString, std::vector<RTLIL::Cell*>> mem_init_cells_map;
 		for(auto mem_it = module->memories.begin(); mem_it != module->memories.end(); ++mem_it)
 		{
-		  RTLIL::IdString mem_name = mem_it->second->name;
-		  mem_init_cells_map[mem_name] = std::vector<RTLIL::Cell*>();
+			RTLIL::IdString mem_name = mem_it->second->name;
+			mem_init_cells_map[mem_name] = std::vector<RTLIL::Cell*>();
 		}
 
 		for(auto cell_it = module->cells_.begin(); cell_it != module->cells_.end(); ++cell_it)
 		{
-		  RTLIL::Cell *cell = cell_it->second;
-		  if (cell->type == "$meminit")
-		  {
-		    str = cell->parameters.at(RTLIL::IdString("\\MEMID")).decode_string();
-		    RTLIL::IdString cell_mem_name = module->memories.at(RTLIL::IdString(str.c_str()))->name;
-		    mem_init_cells_map[cell_mem_name].push_back(cell);
-		  }
+			RTLIL::Cell *cell = cell_it->second;
+			if (cell->type == "$meminit")
+			{
+			str = cell->parameters.at(RTLIL::IdString("\\MEMID")).decode_string();
+			RTLIL::IdString cell_mem_name = module->memories.at(RTLIL::IdString(str.c_str()))->name;
+			mem_init_cells_map[cell_mem_name].push_back(cell);
+			}
 		}
 
 		for(auto mem_it = module->memories.begin(); mem_it != module->memories.end(); ++mem_it)
 		{
-		        bool t1;
+			bool t1;
 			RTLIL::IdString mem_name = mem_it->second->name;
 			if (mem_init_cells_map[mem_name].size()==0)
 			  continue;
@@ -1167,14 +1167,14 @@ struct SmvDumper
 			std::unordered_map<std::string, unsigned int> mem_values;
 			for (unsigned long i=0; i < mem_init_cells_map[mem_name].size(); ++i)
 			{	
-			  RTLIL::Cell *cell = mem_init_cells_map[mem_name][i];
-			  int elem_width = cell->parameters.at(RTLIL::IdString("\\WIDTH")).as_int();
-			  std::string data = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\DATA")), elem_width, true);
-			  auto mem_values_it = mem_values.find(data);
-			  if (mem_values_it != mem_values.end())
-			    mem_values_it->second++;
-			  else
-			    mem_values[data] = 1;
+				RTLIL::Cell *cell = mem_init_cells_map[mem_name][i];
+				int elem_width = cell->parameters.at(RTLIL::IdString("\\WIDTH")).as_int();
+				std::string data = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\DATA")), elem_width, true);
+				auto mem_values_it = mem_values.find(data);
+				if (mem_values_it != mem_values.end())
+					mem_values_it->second++;
+				else
+					mem_values[data] = 1;
 			}
 			
 			auto base_value = std::max_element(mem_values.begin(), mem_values.end(),
@@ -1186,14 +1186,14 @@ struct SmvDumper
 			std::string mem_str = stringf("CONSTARRAY(typeof(%s), %s)", cstr(mem_name), base_value->first.c_str());
 			for (unsigned long i=0; i < mem_init_cells_map[mem_name].size(); ++i)
 			{
-			  	RTLIL::Cell *cell = mem_init_cells_map[mem_name][i];
-			  	int elem_width = cell->parameters.at(RTLIL::IdString("\\WIDTH")).as_int();
-			  	std::string data = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\DATA")), elem_width, true);
-			  	if (data != base_value->first)
-			  	{
-			    		int address_width = cell->parameters.at(RTLIL::IdString("\\ABITS")).as_int();
-			    		std::string address = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\ADDR")), address_width, true);
-                            		mem_str = stringf("WRITE(%s, %s, %s)", mem_str.c_str(), address.c_str(), data.c_str());    
+				RTLIL::Cell *cell = mem_init_cells_map[mem_name][i];
+				int elem_width = cell->parameters.at(RTLIL::IdString("\\WIDTH")).as_int();
+				std::string data = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\DATA")), elem_width, true);
+				if (data != base_value->first)
+				{
+					int address_width = cell->parameters.at(RTLIL::IdString("\\ABITS")).as_int();
+					std::string address = dump_sigspec(t1, &cell->getPort(RTLIL::IdString("\\ADDR")), address_width, true);
+                			mem_str = stringf("WRITE(%s, %s, %s)", mem_str.c_str(), address.c_str(), data.c_str());    
 			  	}
 			}
 
